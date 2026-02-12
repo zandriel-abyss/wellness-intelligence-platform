@@ -1,0 +1,273 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  avatar        String?
+  dateOfBirth   DateTime?
+  gender        String?
+  timezone      String   @default("UTC")
+
+  // Profile information
+  height        Float?   // in cm
+  weight        Float?   // in kg
+  fitnessLevel  String?  // beginner, intermediate, advanced
+  goals         String[] // wellness goals
+
+  // Wearable integrations
+  wearableConnections WearableConnection[]
+
+  // Data and insights
+  wearableData  WearableData[]
+  wellnessScores WellnessScore[]
+  insights      Insight[]
+
+  // Practitioner connections
+  sessions      Session[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("users")
+}
+
+model WearableConnection {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider    String   // "fitbit", "oura", "apple_health", "garmin", etc.
+  providerId  String?  // User's ID on the provider's platform
+  accessToken String
+  refreshToken String?
+  tokenExpiry DateTime?
+
+  // Connection settings
+  enabled     Boolean  @default(true)
+  syncFrequency Int     @default(3600000) // 1 hour in milliseconds
+  lastSync    DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@map("wearable_connections")
+}
+
+model WearableData {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider    String   // wearable provider
+  dataType    String   // "heart_rate", "sleep", "activity", "hrv", etc.
+
+  // Raw data storage
+  rawData     Json     // flexible JSON storage for provider-specific data
+
+  // Processed metrics (extracted from raw data)
+  timestamp   DateTime
+  value       Float?
+  unit        String?
+
+  // Metadata
+  quality     String?  // "high", "medium", "low"
+  source      String?  // specific device/model
+  notes       String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId, dataType, timestamp])
+  @@map("wearable_data")
+}
+
+model WellnessScore {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Score details
+  scoreType   String   // "overall", "stress", "sleep", "energy", "recovery", etc.
+  score       Float    // 0-100 scale
+  confidence  Float?   // AI confidence in the score (0-1)
+
+  // Time period
+  periodStart DateTime
+  periodEnd   DateTime
+
+  // Contributing factors (AI analysis)
+  factors     Json?    // {"sleep_quality": 0.8, "stress_level": 0.6, ...}
+
+  // AI-generated explanation
+  explanation String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId, scoreType, periodEnd])
+  @@map("wellness_scores")
+}
+
+model Insight {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Insight details
+  title       String
+  description String
+  category    String   // "stress", "sleep", "activity", "nutrition", "mindfulness"
+
+  // Severity and priority
+  severity    String   @default("medium") // "low", "medium", "high"
+  priority    Int      @default(50)       // 1-100
+
+  // Evidence and reasoning
+  evidence    Json?    // supporting data points
+  reasoning   String?
+
+  // Actions and recommendations
+  recommendations String[] // actionable recommendations
+  practiceIds     String[] // IDs of recommended practices
+
+  // Status and tracking
+  status      String   @default("active") // "active", "dismissed", "acted_upon"
+  actedAt     DateTime?
+  dismissedAt DateTime?
+
+  // Validity period
+  expiresAt   DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, category, createdAt])
+  @@map("insights")
+}
+
+model Practitioner {
+  id          String   @id @default(cuid())
+
+  // Basic info
+  firstName   String
+  lastName    String
+  email       String   @unique
+  avatar      String?
+  bio         String
+
+  // Professional details
+  specialties String[] // ["yoga", "meditation", "nutrition", "stress_management"]
+  certifications String[]
+  experience  Int      // years of experience
+
+  // Services
+  sessionTypes String[] // ["1on1", "group", "online", "in_person"]
+  pricing     Json?     // {"1on1": 100, "group": 50}
+
+  // Availability
+  timezone    String   @default("UTC")
+  availability Json?   // weekly schedule
+
+  // Ratings and reviews
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+
+  // Platform status
+  verified    Boolean  @default(false)
+  active      Boolean  @default(true)
+
+  // Relationships
+  sessions    Session[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("practitioners")
+}
+
+model Session {
+  id            String   @id @default(cuid())
+
+  // Participants
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  practitionerId String
+  practitioner  Practitioner @relation(fields: [practitionerId], references: [id], onDelete: Cascade)
+
+  // Session details
+  sessionType   String   // "consultation", "follow_up", "practice_session"
+  title         String
+  description   String?
+
+  // Scheduling
+  scheduledAt   DateTime
+  duration      Int      // minutes
+  status        String   @default("scheduled") // "scheduled", "confirmed", "completed", "cancelled"
+
+  // Communication
+  meetingLink   String?
+  notes         String?
+
+  // Payment
+  price         Float?
+  paymentStatus String?  // "pending", "paid", "refunded"
+
+  // Outcomes
+  feedback      String?
+  rating        Int?     // 1-5 stars
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, scheduledAt])
+  @@index([practitionerId, scheduledAt])
+  @@map("sessions")
+}
+
+model Practice {
+  id          String   @id @default(cuid())
+
+  // Practice details
+  title       String
+  description String
+  category    String   // "meditation", "yoga", "breathing", "movement", "nutrition"
+
+  // Content
+  instructions String
+  duration    Int?     // estimated duration in minutes
+  difficulty  String   @default("beginner") // "beginner", "intermediate", "advanced"
+
+  // Media
+  image       String?
+  video       String?
+  audio       String?
+
+  // Metadata
+  tags        String[] // practice tags
+  benefits    String[] // ["stress_reduction", "better_sleep", "improved_focus"]
+
+  // Platform data
+  popularity  Int      @default(0) // usage count
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+
+  // AI matching criteria
+  aiCriteria  Json?    // conditions for recommending this practice
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("practices")
+}

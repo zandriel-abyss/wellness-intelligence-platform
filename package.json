@@ -1,0 +1,40 @@
+{
+  "name": "wellness-intelligence-platform",
+  "version": "1.0.0",
+  "description": "AI-powered wellness platform that processes wearable data to provide actionable wellness insights",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "node dist/server.js",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test"
+  },
+  "keywords": [
+    "wellness",
+    "wearables",
+    "AI",
+    "health",
+    "fitness",
+    "meditation",
+    "yoga"
+  ],
+  "author": "Wellness Intelligence Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.13.2"
+  }
+}
