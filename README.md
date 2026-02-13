@@ -14,16 +14,21 @@ An AI-powered wellness platform that turns wearable data (heart rate, sleep, act
 
 ## Quick start
 
-**Run the app locally (backend + frontend):**
+**Easiest:** From the project root, run a single launcher (handles setup and starts backend + frontend):
 
-1. **Database:** from project root, `docker compose up db -d`
-2. **Backend:** `cd backend && npx prisma migrate dev && npm run dev` (leave running)
-3. **Frontend:** in a second terminal, `cd frontend && npm install && npm run dev`
-4. Open **http://localhost:3000** — register or use a demo user, add demo data, run wellness analysis.
+- **Mac/Linux:** `chmod +x start.sh` (once), then `./start.sh`
+- **Windows:** double-click **`start.bat`** or run it from the project folder
 
-**Terminal-only demo (no browser):** `cd backend && npm run demo`
+The script creates `.env` if needed, installs dependencies, starts the database, runs migrations, and opens **http://localhost:3000**. Press Ctrl+C to stop.
 
-Full step-by-step: **[backend/DEMO.md](backend/DEMO.md)**.
+**Manual start** (if you’ve already run setup once):
+
+1. `docker compose up db -d`
+2. `cd backend && npm run dev` (leave running)
+3. In a second terminal: `cd frontend && npm run dev`
+4. Open **http://localhost:3000**
+
+**First time / fresh zip or clone?** Use **[GETTING_STARTED.md](GETTING_STARTED.md)** for prerequisites and full steps. Shorter demo: **[backend/DEMO.md](backend/DEMO.md)**.
 
 ---
 
@@ -31,6 +36,7 @@ Full step-by-step: **[backend/DEMO.md](backend/DEMO.md)**.
 
 | Doc | Description |
 |-----|-------------|
+| [GETTING_STARTED.md](GETTING_STARTED.md) | **Start here if fresh:** prerequisites, create `.env`, install, DB, migrate, run backend + frontend |
 | [backend/DEMO.md](backend/DEMO.md) | How to run the demo (terminal-only or full app, two terminals) |
 | [frontend/README.md](frontend/README.md) | Frontend setup and run |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Production deployment overview |

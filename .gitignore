@@ -4,3 +4,6 @@ node_modules
 .env
 backend/.env
 frontend/.env
+
+# Local launch script state (seed-done flag)
+backend/.seed-done

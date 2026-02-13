@@ -2,12 +2,14 @@
 
 You can run either **backend-only** (scores in the terminal) or the **full app** (browser UI).
 
+**New to the project?** If you just downloaded the zip or cloned the repo, use **[GETTING_STARTED.md](../GETTING_STARTED.md)** at the project root. It lists prerequisites and step-by-step setup (including creating `backend/.env` from `.env.example`). Come back here once that’s done.
+
 ---
 
 ## What you need first
 
-- **Database** running (Postgres via Docker).
-- **Backend `.env`** with `DATABASE_URL` and `MISTRAL_API_KEY` (see `backend/.env`).
+- **Database** running (Postgres via Docker, or your own — see GETTING_STARTED).
+- **Backend `.env`** — copy from `backend/.env.example` to `backend/.env` and set `DATABASE_URL` (and optionally `MISTRAL_API_KEY` for real AI).
 
 ---
 
