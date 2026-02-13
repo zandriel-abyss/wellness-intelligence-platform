@@ -57,9 +57,9 @@ JWT_SECRET=$(openssl rand -hex 32)
 JWT_EXPIRES_IN=7d
 BCRYPT_ROUNDS=12
 
-# AI/OpenAI
-OPENAI_API_KEY=your-openai-api-key-here
-OPENAI_MODEL=gpt-4-turbo-preview
+# AI (Mistral)
+MISTRAL_API_KEY=your-mistral-api-key-here
+MISTRAL_MODEL=mistral-large-latest
 
 # Redis (optional - for caching)
 REDIS_URL=redis://localhost:6379
@@ -81,8 +81,7 @@ EOL
 
 # Frontend production env
 cat > frontend/.env.production << EOL
-REACT_APP_API_URL=https://your-backend-domain.com
-GENERATE_SOURCEMAP=false
+VITE_API_URL=https://your-backend-domain.com
 EOL
 
 echo "📝 Production environment files created!"
@@ -91,8 +90,8 @@ echo "   - frontend/.env.production"
 echo ""
 echo "⚠️  IMPORTANT: Update the following in your .env files:"
 echo "   1. DATABASE_URL in backend/.env.production"
-echo "   2. OPENAI_API_KEY in backend/.env.production"
-echo "   3. FRONTEND_URL and REACT_APP_API_URL with your actual domains"
+echo "   2. MISTRAL_API_KEY in backend/.env.production"
+echo "   3. FRONTEND_URL and VITE_API_URL with your actual domains"
 echo ""
 
 # Generate Prisma client and push schema
