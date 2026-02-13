@@ -11,7 +11,8 @@
     "test": "jest",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "demo": "tsx scripts/demo-wellness.ts"
   },
   "dependencies": {
     "@mistralai/mistralai": "^1.14.0",
@@ -46,5 +47,8 @@
     "supertest": "^6.3.3",
     "tsx": "^4.6.2",
     "typescript": "^5.3.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }

@@ -46,70 +46,26 @@ export async function processWellnessData(
 
     if (useMistral) {
       const mistral = new Mistral({ apiKey: mistralKey as string });
-      // Generate AI analysis prompt
       const analysisPrompt = createAnalysisPrompt(dataSummary);
 
-      // Call Mistral for comprehensive analysis
-      const completion = await mistral.chat.complete({
-        model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert wellness intelligence analyst. Analyze wearable data to provide actionable wellness insights and scores.
+      const systemPrompt = `You are a wellness analyst. Reply with ONLY one valid JSON object. No markdown, no code fences, no comments, no trailing commas.
+Structure (use exactly 4 scores and exactly 2 insights; keep explanations to one short sentence each):
+{"scores":[{"type":"overall","score":0-100,"confidence":0-1,"factors":{},"explanation":""},{"type":"stress","score":0-100,"confidence":0-1,"factors":{},"explanation":""},{"type":"sleep","score":0-100,"confidence":0-1,"factors":{},"explanation":""},{"type":"energy","score":0-100,"confidence":0-1,"factors":{},"explanation":""}],"insights":[{"title":"","description":"","category":"stress|sleep|activity","severity":"low|medium|high","priority":1-100,"recommendations":[],"practiceTypes":[],"evidence":{},"reasoning":""},{"title":"","description":"","category":"","severity":"","priority":50,"recommendations":[],"practiceTypes":[],"evidence":{},"reasoning":""}]}`;
 
-Return a JSON object with the following structure:
-{
-  "scores": [
-    {
-      "type": "overall|stress|sleep|energy|recovery|focus|mood",
-      "score": 0-100,
-      "confidence": 0-1,
-      "factors": {"factor_name": impact_score},
-      "explanation": "brief explanation"
-    }
-  ],
-  "insights": [
-    {
-      "title": "Brief title",
-      "description": "Detailed description",
-      "category": "stress|sleep|activity|nutrition|mindfulness",
-      "severity": "low|medium|high",
-      "priority": 1-100,
-      "recommendations": ["actionable recommendation"],
-      "practiceTypes": ["yoga", "meditation", "breathing", "movement"],
-      "evidence": {"supporting_data": "value"},
-      "reasoning": "why this insight matters"
-    }
-  ]
-}`
-          },
-          {
-            role: 'user',
-            content: analysisPrompt
-          }
-        ],
-        temperature: 0.3,
-        maxTokens: 2000
-      });
+      let response = await callMistral(mistral, systemPrompt, analysisPrompt, 4096);
+      let parsed = tryParseAnalysis(response);
 
-      let response = completion.choices?.[0]?.message?.content as string;
-      if (!response) {
-        throw new Error('No response from AI service');
+      if (!parsed) {
+        console.warn('[aiProcessor] First response invalid, retrying with shorter instructions...');
+        const retryPrompt = `IMPORTANT: Reply with ONLY valid JSON, no markdown. Same structure: 4 scores (overall, stress, sleep, energy), 2 insights. One short sentence per explanation.\n\n${analysisPrompt}`;
+        response = await callMistral(mistral, systemPrompt, retryPrompt, 4096);
+        parsed = tryParseAnalysis(response);
       }
 
-      // Some models return JSON wrapped in markdown fences like ```json ... ```
-      const firstBrace = response.indexOf('{');
-      const lastBrace = response.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        response = response.slice(firstBrace, lastBrace + 1);
-      }
-      // Be tolerant of trailing commas in JSON-like output
-      response = response.replace(/,\s*([}\]])/g, '$1');
-
-      try {
-        analysis = JSON.parse(response);
-      } catch (parseError) {
-        console.error('[aiProcessor] Failed to parse AI JSON. Falling back to mock analysis. Snippet:', response.slice(0, 500));
+      if (parsed) {
+        analysis = parsed;
+      } else {
+        console.error('[aiProcessor] Failed to parse AI JSON after retry. Falling back to mock. Snippet:', response.slice(0, 400));
         analysis = getMockAnalysis();
       }
     } else {
@@ -193,9 +149,46 @@ function getMockAnalysis() {
   };
 }
 
+async function callMistral(
+  mistral: { chat: { complete: (opts: any) => Promise<{ choices?: Array<{ message?: { content?: string } }> }> } },
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens: number
+): Promise<string> {
+  const completion = await mistral.chat.complete({
+    model: process.env.MISTRAL_MODEL || 'mistral-large-latest',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.3,
+    maxTokens,
+  });
+  const text = completion.choices?.[0]?.message?.content as string;
+  if (!text) throw new Error('No response from AI service');
+  return text;
+}
+
+function tryParseAnalysis(response: string): { scores: any[]; insights: any[] } | null {
+  let str = response;
+  const first = str.indexOf('{');
+  const last = str.lastIndexOf('}');
+  if (first !== -1 && last > first) str = str.slice(first, last + 1);
+  str = str.replace(/,\s*([}\]])/g, '$1');
+  try {
+    const out = JSON.parse(str);
+    const scores = Array.isArray(out.scores) ? out.scores : [];
+    const insights = Array.isArray(out.insights) ? out.insights : [];
+    if (scores.length === 0) return null;
+    return { scores, insights };
+  } catch {
+    return null;
+  }
+}
+
 function summarizeWearableData(data: any[]) {
   const summary: Record<string, any> = {
-    heartRate: [],
+    heartrate: [],
     sleep: [],
     activity: [],
     hrv: [],
